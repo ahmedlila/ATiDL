@@ -1,0 +1,6 @@
+
+*.gz
+data/MNIST/raw/t10k-labels-idx1-ubyte
+/data
+/Self-Supervised Tasks/data
+/Self-Supervised Tasks/imagenette2
