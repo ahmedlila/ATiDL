@@ -6,3 +6,5 @@ data/MNIST/raw/t10k-labels-idx1-ubyte
 /Self-Supervised Tasks/imagenette2
 /Self-Supervised Tasks/pretext_rotation/imagenette2
 *.tgz
+/Self-Supervised Tasks/pretext_patch_relationship/animals10
+*.zip
