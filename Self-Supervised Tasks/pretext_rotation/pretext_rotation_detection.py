@@ -48,7 +48,7 @@ class DataLoaderManager:
             transforms.Resize((256, 256)),
             transforms.ToTensor(),
         ])
-        self.train_loader, self.val_loader = self._create_dataloaders()
+        self.train_loader, self.val_loader, self.test_loader = self._create_dataloaders()
 
     def _create_dataloaders(self):
         train_dataset = RotationDataset(root_dir=f'{self.root_path}/train', transform=self.transform)
@@ -177,23 +177,23 @@ def train(num_epochs, model, optimizer, scheduler, train_loader, val_loader, dev
 def download_and_extract(extract_dir):
     # Check if the directory exists, if not, create it
     if not os.path.exists(extract_dir):
+        print(f"Creating directory {extract_dir}...")
         os.makedirs(extract_dir)
+        # Check if the tar file exists, if not, download it
+        tar_file_path = os.path.join(extract_dir, 'imagenette2.tgz')
+        if not os.path.exists(tar_file_path):
+            print("Downloading imagenette2.tgz...")
+            response = requests.get("https://s3.amazonaws.com/fast-ai-imageclas/imagenette2.tgz", stream=True)
+            with open(tar_file_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=128):
+                    f.write(chunk)
+            print("Download completed.")
 
-    # Check if the tar file exists, if not, download it
-    tar_file_path = os.path.join(extract_dir, 'imagenette2.tgz')
-    if not os.path.exists(tar_file_path):
-        print("Downloading imagenette2.tgz...")
-        response = requests.get("https://s3.amazonaws.com/fast-ai-imageclas/imagenette2.tgz", stream=True)
-        with open(tar_file_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=128):
-                f.write(chunk)
-        print("Download completed.")
-
-    # Extract the tar file
-    print("Extracting imagenette2.tgz...")
-    with tarfile.open(tar_file_path, 'r:gz') as tar:
-        tar.extractall(extract_dir)
-    print("Extraction completed.")
+        # Extract the tar file
+        print("Extracting imagenette2.tgz...")
+        with tarfile.open(tar_file_path, 'r:gz') as tar:
+            tar.extractall(extract_dir)
+        print("Extraction completed.")
 
 
 if __name__ == "__main__":
