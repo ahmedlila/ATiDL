@@ -4,13 +4,14 @@ import time
 import requests
 import tarfile
 
+import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim.lr_scheduler
 import torchmetrics
 from PIL import Image
-from torch.utils.data import DataLoader, Dataset, ConcatDataset
+from torch.utils.data import DataLoader, Dataset, ConcatDataset, Subset
 from torchvision import transforms
 import torchvision.transforms.functional as TF
 from tqdm.auto import tqdm
@@ -66,7 +67,13 @@ class DataLoaderManager:
         concatenated_val_dataset = ConcatDataset([val_dataset, rotated_90_val_dataset, rotated_180_val_dataset, rotated_270_val_dataset])
         val_loader = DataLoader(concatenated_val_dataset, batch_size=self.batch_size, shuffle=True)
 
-        return train_loader, val_loader
+        # Splitting the concatenated validation dataset into validation and test subsets
+        val_subset, test_subset = self._split_val_test_sets(concatenated_val_dataset)
+
+        val_loader = DataLoader(val_subset, batch_size=self.batch_size, shuffle=True)
+        test_loader = DataLoader(test_subset, batch_size=self.batch_size, shuffle=True)
+
+        return train_loader, val_loader, test_loader
 
     def _rotate_90(self, image):
         return TF.rotate(image, 90)
@@ -76,6 +83,17 @@ class DataLoaderManager:
 
     def _rotate_270(self, image):
         return TF.rotate(image, 270)
+
+    def _split_val_test_sets(self, dataset, test_fraction=0.3):
+        dataset_length = len(dataset)
+        test_dataset_length = int(test_fraction * dataset_length)
+        indices = list(range(dataset_length))
+        random.shuffle(indices)
+        test_indices = indices[:test_dataset_length]
+        val_indices = indices[test_dataset_length:]
+        val_subset = Subset(dataset, val_indices)
+        test_subset = Subset(dataset, test_indices)
+        return val_subset, test_subset
 
 class RotationClassifier(torch.nn.Module):
     def __init__(self, num_classes):
@@ -197,6 +215,7 @@ if __name__ == "__main__":
     dataloader_manager = DataLoaderManager(root_path=extract_dir, batch_size=32)
     train_loader = dataloader_manager.train_loader
     val_loader = dataloader_manager.val_loader
+    test_loader = dataloader_manager.test_loader
 
     #########################################
     ### 3 Initializing the Model
@@ -227,4 +246,18 @@ if __name__ == "__main__":
     elapsed = end-start
     print(f"Time elapsed {elapsed/60:.2f} min")
     print(f"Memory used: {torch.cuda.max_memory_reserved() / 1e9:.02f} GB")
+    
+    #########################################
+    ### 4 Evaluation
 
+    with torch.no_grad():
+        model.eval()
+        test_acc = torchmetrics.Accuracy(task="multiclass", num_classes=10).to(device)
+
+        for (features, targets) in test_loader:
+            features = features.to(device)
+            targets = targets.to(device)
+            outputs = model(features)
+            predicted_labels = torch.argmax(outputs, 1)
+            test_acc.update(predicted_labels, targets)
+    print(f"Test accuracy {test_acc.compute()*100:.2f}%")
