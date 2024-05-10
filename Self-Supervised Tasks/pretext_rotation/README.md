@@ -33,8 +33,8 @@ python pretext_rotation_detection.py
 
 Below are the loss and accuracy curves obtained during training:
 
-<div style="display: flex; flex-direction: row;">
-  <img src="training_results/loss_curve.png" alt="Loss Curve" style="width: 45%;">
-  <img src="training_results/accuracy_curve.png" alt="Accuracy Curve" style="width: 45%;">
+<div style="text-align: center;">
+  <img src="training_results/loss_curve.png" alt="Loss Curve" style="width: 70%; margin-right: 20px;">
+  <img src="training_results/accuracy_curve.png" alt="Accuracy Curve" style="width: 70%;">
 </div>
 
