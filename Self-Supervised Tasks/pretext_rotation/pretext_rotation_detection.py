@@ -15,6 +15,7 @@ from torch.utils.data import DataLoader, Dataset, ConcatDataset, Subset
 from torchvision import transforms
 import torchvision.transforms.functional as TF
 from tqdm.auto import tqdm
+import matplotlib.pyplot as plt
 
 import lightning as L
 from watermark import watermark
@@ -127,51 +128,86 @@ class RotationClassifier(torch.nn.Module):
 
 
 def train(num_epochs, model, optimizer, scheduler, train_loader, val_loader, device):
+    train_losses = []
+    val_losses = []
+    train_accuracies = []
+    val_accuracies = []
 
     for epoch in range(num_epochs):
-        train_acc = torchmetrics.Accuracy(task="multiclass", num_classes=4).to(device)
-
         model.train()
-        for batch_idx, (features, targets) in enumerate(train_loader):
-            model.train()
+        train_loss = 0.0
+        correct_train = 0
+        total_train = 0
 
+        for features, targets in train_loader:
             features = features.to(device)
             targets = targets.to(device)
 
-            ### FORWARD AND BACK PROP
+            optimizer.zero_grad()
             logits = model(features)
             loss = F.cross_entropy(logits, targets)
-
-            optimizer.zero_grad()
             loss.backward()
-
-            ### UPDATE MODEL PARAMETERS
             optimizer.step()
-            scheduler.step()
 
-            ### LOGGING
-            if not batch_idx % 256:
-                print(f"Epoch: {epoch+1:04d}/{num_epochs:04d} | Batch {batch_idx:04d}/{len(train_loader):04d} | Loss: {loss:.4f}")
+            train_loss += loss.item()
+            _, predicted = torch.max(logits.data, 1)
+            total_train += targets.size(0)
+            correct_train += (predicted == targets).sum().item()
 
-            model.eval()
-            with torch.no_grad():
-                predicted_labels = torch.argmax(logits, 1)
-                train_acc.update(predicted_labels, targets)
+        train_loss /= len(train_loader)
+        train_accuracy = 100 * correct_train / total_train
 
-        ### MORE LOGGING
+        train_losses.append(train_loss)
+        train_accuracies.append(train_accuracy)
+
         model.eval()
-        with torch.no_grad():
-            val_acc = torchmetrics.Accuracy(task="multiclass", num_classes=4).to(device)
+        val_loss = 0.0
+        correct_val = 0
+        total_val = 0
 
-            for (features, targets) in val_loader:
+        with torch.no_grad():
+            for features, targets in val_loader:
                 features = features.to(device)
                 targets = targets.to(device)
-                outputs = model(features)
-                predicted_labels = torch.argmax(outputs, 1)
-                val_acc.update(predicted_labels, targets)
 
-            print(f"Epoch: {epoch+1:04d}/{num_epochs:04d} | Train acc.: {train_acc.compute()*100:.2f}% | Val acc.: {val_acc.compute()*100:.2f}%")
-            train_acc.reset(), val_acc.reset()
+                outputs = model(features)
+                loss = F.cross_entropy(outputs, targets)
+                val_loss += loss.item()
+
+                _, predicted = torch.max(outputs.data, 1)
+                total_val += targets.size(0)
+                correct_val += (predicted == targets).sum().item()
+
+        val_loss /= len(val_loader)
+        val_accuracy = 100 * correct_val / total_val
+
+        val_losses.append(val_loss)
+        val_accuracies.append(val_accuracy)
+
+        print(f"Epoch [{epoch+1}/{num_epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_accuracy:.2f}%, Val Loss: {val_loss:.4f}, Val Accuracy: {val_accuracy:.2f}%")
+
+    # Plotting and saving loss and accuracy curves
+    epochs = range(1, num_epochs + 1)
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(epochs, train_losses, label='Train Loss')
+    plt.plot(epochs, val_losses, label='Val Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Training and Validation Loss')
+    plt.legend()
+    plt.savefig('loss_curve.png')
+    plt.show()
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(epochs, train_accuracies, label='Train Accuracy')
+    plt.plot(epochs, val_accuracies, label='Val Accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy (%)')
+    plt.title('Training and Validation Accuracy')
+    plt.legend()
+    plt.savefig('accuracy_curve.png')
+    plt.show()
 
 
 def download_and_extract(extract_dir):
