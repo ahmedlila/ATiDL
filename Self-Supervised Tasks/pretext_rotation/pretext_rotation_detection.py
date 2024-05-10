@@ -148,6 +148,7 @@ def train(num_epochs, model, optimizer, scheduler, train_loader, val_loader, dev
             loss = F.cross_entropy(logits, targets)
             loss.backward()
             optimizer.step()
+            scheduler.step()
 
             train_loss += loss.item()
             _, predicted = torch.max(logits.data, 1)
