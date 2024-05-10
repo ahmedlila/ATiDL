@@ -223,8 +223,8 @@ if __name__ == "__main__":
     model = RotationClassifier(num_classes=4)
     model.to(device)
     
-    NUM_EPOCHS = 100
-    optimizer = torch.optim.Adam(model.parameters(), lr=5e-5)
+    NUM_EPOCHS = 15
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     num_steps = NUM_EPOCHS * len(train_loader)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps)
 
