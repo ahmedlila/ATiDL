@@ -188,6 +188,10 @@ def train(num_epochs, model, optimizer, scheduler, train_loader, val_loader, dev
 
     # Plotting and saving loss and accuracy curves
     epochs = range(1, num_epochs + 1)
+    
+    # Create directory to save training results
+    if os.path.exists('training_results'):
+        os.makedirs('training_results')
 
     plt.figure(figsize=(10, 5))
     plt.plot(epochs, train_losses, label='Train Loss')
@@ -196,7 +200,7 @@ def train(num_epochs, model, optimizer, scheduler, train_loader, val_loader, dev
     plt.ylabel('Loss')
     plt.title('Training and Validation Loss')
     plt.legend()
-    plt.savefig('loss_curve.png')
+    plt.savefig('training_results/loss_curve.png')
     plt.show()
 
     plt.figure(figsize=(10, 5))
@@ -206,7 +210,7 @@ def train(num_epochs, model, optimizer, scheduler, train_loader, val_loader, dev
     plt.ylabel('Accuracy (%)')
     plt.title('Training and Validation Accuracy')
     plt.legend()
-    plt.savefig('accuracy_curve.png')
+    plt.savefig('training_results/accuracy_curve.png')
     plt.show()
 
 
